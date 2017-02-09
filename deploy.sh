@@ -53,7 +53,7 @@ cp -r $HOME/.virtualenvs/eventm/lib/python2.7/site-packages/babel $TGTDIR/buildw
 cp -r $HOME/.virtualenvs/eventm/lib/python2.7/site-packages/pytz $TGTDIR/buildwww/pytz
 cp -r $HOME/.virtualenvs/eventm/lib/python2.7/site-packages/httplib2 $TGTDIR/buildwww/httplib2
 cp -r $HOME/.virtualenvs/eventm/lib/python2.7/site-packages/httpagentparser $TGTDIR/buildwww/httpagentparser
-cd $HOME/.eventm/google_appengine/
+cd $HOME/.sportcambodia/google_appengine/
 ./appcfg.py -A sport-khmer uno update $TGTDIR/buildwww/ --no_cookies date
 # cd ..
 
