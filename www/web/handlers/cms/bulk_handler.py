@@ -15,7 +15,7 @@ from web.utils import cache_keys
 from web.utils.memcache_utils import mc_delete
 from web.lib.basehandler import BaseHandler
 from web.handlers.cms import cms_forms as forms
-from models import Playground, Business, Media, MasterData
+from models import Playground, Business, Media, MainData
 from web.dao.dao_factory import DaoFactory
 from web.lib.decorators import user_required
 from datetime import datetime, date, time
@@ -29,7 +29,7 @@ class ManageBulkDataHandler(blobstore_handlers.BlobstoreUploadHandler, BaseHandl
   mediaDao = DaoFactory.create_rw_mediaDao()
 
   @user_required
-  def get(self, masterdata_id=None):
+  def get(self, maindata_id=None):
     params = {}
   
     upload_url = self.uri_for('create-bulk-data')
@@ -39,45 +39,45 @@ class ManageBulkDataHandler(blobstore_handlers.BlobstoreUploadHandler, BaseHandl
     params['title'] = 'Create Bulk Data'
     params['weekdays'] = constants.DAYS_LIST
     
-    if masterdata_id is not None  and len(masterdata_id) > 1:
-      masterdata = self.playgroundDao.get_record(masterdata_id)
-      params['title'] = 'Update - ' + str(masterdata.name)
+    if maindata_id is not None  and len(maindata_id) > 1:
+      maindata = self.playgroundDao.get_record(maindata_id)
+      params['title'] = 'Update - ' + str(maindata.name)
       params['continue_url'] = continue_url
       if pg_status is not None:
         logger.info('current status: %s' % pg_status)
-        key = self.playgroundDao.status_change(masterdata, self.user_info)
+        key = self.playgroundDao.status_change(maindata, self.user_info)
         if key is not None:
           updated_pg = self.playgroundDao.get_record(long(key.id()))
           logger.info('updated status : %s' % updated_pg.status)
           if pg_status == str(updated_pg.status):
-            logger.info('masterdata status could not be changed.')
-            message = ('masterdata status could not be changed.')
+            logger.info('maindata status could not be changed.')
+            message = ('maindata status could not be changed.')
             self.add_message(message, 'error')
           else:
-            logger.info('masterdata status succesfully changed.')
-            message = ('masterdata status succesfully changed.')
+            logger.info('maindata status succesfully changed.')
+            message = ('maindata status succesfully changed.')
             self.add_message(message, 'success')
           return self.redirect(continue_url)
       else:
-        upload_url = self.uri_for('edit-masterdata', masterdata_id = masterdata_id)      
-        all_media = self.mediaDao.get_all_media(masterdata.key, constants.PLAYGROUND)
+        upload_url = self.uri_for('edit-maindata', maindata_id = maindata_id)      
+        all_media = self.mediaDao.get_all_media(maindata.key, constants.PLAYGROUND)
         current_media = []
         for photo in all_media:
           current_media.append({'name': photo.name, 'url':images.get_serving_url(photo.link), 'status': photo.status, 'primary': photo.primary})
         params['current_media'] = current_media
-        self.form = cms_utils.dao_to_form_locality_info(masterdata, forms.BulkPlaygroundForm(self, masterdata))
-        self.form = cms_utils.dao_to_form_contact_info(masterdata, self.form)        
+        self.form = cms_utils.dao_to_form_locality_info(maindata, forms.BulkPlaygroundForm(self, maindata))
+        self.form = cms_utils.dao_to_form_contact_info(maindata, self.form)        
       
     params['media_upload_url'] = blobstore.create_upload_url(upload_url)
     return self.render_template('/cms/create_bulk_data.html', **params)
 
   @user_required
-  def post(self, masterdata_id=None):
+  def post(self, maindata_id=None):
     params = {}
 
     if not self.form.validate():
-      if masterdata_id is not None  and len(masterdata_id) > 1:
-        return self.get(masterdata_id)
+      if maindata_id is not None  and len(maindata_id) > 1:
+        return self.get(maindata_id)
       else:
         return self.get()
     
@@ -86,33 +86,33 @@ class ManageBulkDataHandler(blobstore_handlers.BlobstoreUploadHandler, BaseHandl
     next_tab = next if next != '' else save
     locality_id = self.request.get('locality_id')
     
-    masterdata = self.form_to_dao(masterdata_id)
+    maindata = self.form_to_dao(maindata_id)
     
     if locality_id is not None:
       logger.info('Locality Id: %s ' % locality_id)
-      locality_count = self.process_locality(masterdata.address.locality, locality_id, constants.PLACES_API_KEY)    
-      masterdata.address.locality_id = locality_id
+      locality_count = self.process_locality(maindata.address.locality, locality_id, constants.PLACES_API_KEY)    
+      maindata.address.locality_id = locality_id
       
-    logger.debug('masterdata populated ' + str(masterdata))
-    key = self.bulkdataDao.persist(masterdata, self.user_info)
+    logger.debug('maindata populated ' + str(maindata))
+    key = self.bulkdataDao.persist(maindata, self.user_info)
     logger.debug('key ' + str(key))
     
     if key is not None:
       self.upload_photos(key)
-      logger.info('masterdata succesfully created/updated')
-      message = ('masterdata succesfully created/updated.')
+      logger.info('maindata succesfully created/updated')
+      message = ('maindata succesfully created/updated.')
       self.add_message(message, 'success')
       return self.redirect_to('create-bulk-data', **params)
     
-    logger.error('masterdata creation failed')
-    message = ('masterdata creation failed.')
+    logger.error('maindata creation failed')
+    message = ('maindata creation failed.')
     self.add_message(message, 'error')
-    self.form = forms.MasterDataForm(self, masterdata)
+    self.form = forms.MainDataForm(self, maindata)
     return self.render_template('/cms/create_bulk_data.html', **params)
 
   @webapp2.cached_property
   def form(self):
-    return forms.MasterDataForm(self)
+    return forms.MainDataForm(self)
     
   def upload_photos(self, key):
     upload_files = self.get_uploads()  
@@ -133,39 +133,39 @@ class ManageBulkDataHandler(blobstore_handlers.BlobstoreUploadHandler, BaseHandl
         self.mediaDao.persist(media_obj)
         logger.info('Link to picture file ' + media_obj.name + ', ' + images.get_serving_url(media_obj.link))
     
-  def form_to_dao(self, masterdata_id):
-    masterdata = None
-    if masterdata_id is not None  and len(masterdata_id) > 1:
-      masterdata = self.playgroundDao.get_record(long(masterdata_id))
+  def form_to_dao(self, maindata_id):
+    maindata = None
+    if maindata_id is not None  and len(maindata_id) > 1:
+      maindata = self.playgroundDao.get_record(long(maindata_id))
     else:
-      masterdata = MasterData()
-    masterdata.pg_name = self.form.pg_name.data
-    masterdata.sport = self.form.sport.data.lower()
+      maindata = MainData()
+    maindata.pg_name = self.form.pg_name.data
+    maindata.sport = self.form.sport.data.lower()
     
-    masterdata.public = self.form.public.data
-    masterdata.booking_days = self.form.booking_days.data
-    masterdata.regular_time = self.form.regular_time.data
-    masterdata.ground_type = self.form.ground_type.data.lower()
-    masterdata.surface_type = self.form.surface_type.data.lower()
-    masterdata.tot_fields = self.form.tot_fields.data
-    masterdata.ground_rules = self.form.ground_rules.data.lower()
+    maindata.public = self.form.public.data
+    maindata.booking_days = self.form.booking_days.data
+    maindata.regular_time = self.form.regular_time.data
+    maindata.ground_type = self.form.ground_type.data.lower()
+    maindata.surface_type = self.form.surface_type.data.lower()
+    maindata.tot_fields = self.form.tot_fields.data
+    maindata.ground_rules = self.form.ground_rules.data.lower()
     
-    masterdata.tc_name = self.form.tc_name.data
-    masterdata.tc_open_days = self.form.tc_open_days.data.lower()
-    masterdata.age_limit = self.form.age_limit.data
-    masterdata.tc_participants = self.form.tc_participants.data
+    maindata.tc_name = self.form.tc_name.data
+    maindata.tc_open_days = self.form.tc_open_days.data.lower()
+    maindata.age_limit = self.form.age_limit.data
+    maindata.tc_participants = self.form.tc_participants.data
     
-    masterdata.se_name = self.form.se_name.data
+    maindata.se_name = self.form.se_name.data
     if self.form.start_datetime.data is not None:
-      masterdata.start_datetime = datetime(*(self.form.start_datetime.data.timetuple()[:6]))
+      maindata.start_datetime = datetime(*(self.form.start_datetime.data.timetuple()[:6]))
     if self.form.end_datetime.data is not None:
-      masterdata.end_datetime = datetime(*(self.form.end_datetime.data.timetuple()[:6]))
+      maindata.end_datetime = datetime(*(self.form.end_datetime.data.timetuple()[:6]))
     
-    masterdata = cms_utils.form_to_dao_address(self.form, masterdata)
-    masterdata = cms_utils.form_to_dao_contact_pg(self.form, masterdata)
-    masterdata = cms_utils.form_to_dao_contact_tc(self.form, masterdata)
-    masterdata = cms_utils.form_to_dao_contact_se(self.form, masterdata)
-    return masterdata
+    maindata = cms_utils.form_to_dao_address(self.form, maindata)
+    maindata = cms_utils.form_to_dao_contact_pg(self.form, maindata)
+    maindata = cms_utils.form_to_dao_contact_tc(self.form, maindata)
+    maindata = cms_utils.form_to_dao_contact_se(self.form, maindata)
+    return maindata
        
   
   def create_or_update_business(self, playground):
