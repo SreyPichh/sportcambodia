@@ -87,7 +87,7 @@ class Deploy(base.Command):
               'One of the parameters --source-revision, --source-branch, '
               'or --source-tag can be given to specify the version in the '
               'repository. If none of them are provided, the last revision '
-              'from the master branch is used. If this parameter is given, '
+              'from the main branch is used. If this parameter is given, '
               'the parameter --source is required and describes the path '
               'inside the repository.'))
     source_version_group = parser.add_mutually_exclusive_group()

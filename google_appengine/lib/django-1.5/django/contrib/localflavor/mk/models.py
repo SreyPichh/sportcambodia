@@ -32,7 +32,7 @@ class MKMunicipalityField(CharField):
 
 class UMCNField(CharField):
 
-    description = _("Unique master citizen number (13 digits)")
+    description = _("Unique main citizen number (13 digits)")
 
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = 13
